@@ -1,0 +1,161 @@
+openapi: 3.0.3
+info:
+  title: Flight Recommendations API (prototype)
+  version: "0.1.0"
+  description: Minimal OpenAPI contract for local prototype returning mocked flight recommendations.
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /recommendations:
+    get:
+      summary: Get flight recommendations for origin/destination and date or date range
+      parameters:
+        - name: origin
+          in: query
+          required: true
+          schema:
+            type: string
+            example: JFK
+        - name: destination
+          in: query
+          required: true
+          schema:
+            type: string
+            example: LAX
+        - name: date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+            example: 2025-12-01
+        - name: start_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+        - name: end_date
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: A list of recommendations (one entry per flight/fare projection)
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Recommendation'
+        '400':
+          description: Invalid request
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+  /flights/{flight_id}:
+    get:
+      summary: Get detailed fare breakdown for a flight
+      parameters:
+        - name: flight_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Flight with fare details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FlightWithFares'
+        '404':
+          description: Flight not found
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+
+components:
+  schemas:
+    Flight:
+      type: object
+      properties:
+        flight_id:
+          type: string
+        airline:
+          type: string
+        origin:
+          type: string
+        destination:
+          type: string
+        date:
+          type: string
+          format: date
+        departure_time:
+          type: string
+        arrival_time:
+          type: string
+        duration_minutes:
+          type: integer
+
+    Fare:
+      type: object
+      properties:
+        fare_type:
+          type: string
+          enum: [saver, roundtrip_saver, flex, business, first_class]
+        price:
+          type: number
+          format: float
+        currency:
+          type: string
+        refundable:
+          type: boolean
+        rules:
+          type: string
+
+    Recommendation:
+      type: object
+      properties:
+        flight:
+          $ref: '#/components/schemas/Flight'
+        fares:
+          type: array
+          items:
+            $ref: '#/components/schemas/Fare'
+        score:
+          type: number
+          description: Ranking score (higher is better)
+
+    FlightWithFares:
+      type: object
+      properties:
+        flight:
+          $ref: '#/components/schemas/Flight'
+        fares:
+          type: array
+          items:
+            $ref: '#/components/schemas/Fare'
+
+    Problem:
+      type: object
+      properties:
+        type:
+          type: string
+        title:
+          type: string
+        status:
+          type: integer
+        detail:
+          type: string
+        instance:
+          type: string
